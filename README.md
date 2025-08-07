@@ -2,14 +2,7 @@
 
 ## Overview
 
-The Vehicles App is a single-page application built with Angular 19, utilizing Angular Material for UI components, NgRx for state management, and Angular Router for navigation. This application allows users to view and manage a list of vehicles.
-
-## Features
-
-- **Home Page**: A landing page that introduces the application.
-- **Vehicle List**: Displays a list of vehicles with options to add, edit, or remove vehicles.
-- **State Management**: Utilizes NgRx for managing the application state efficiently.
-- **Responsive Design**: Built with Angular Material to ensure a responsive and user-friendly interface.
+The Vehicles App is a single-page application built with Angular 19, utilizing Angular Material for UI components, NgRx for state management, and Angular Router for navigation. This application provides comprehensive vehicle information using the NHTSA Vehicle API.
 
 ## Project Structure
 
@@ -17,20 +10,33 @@ The Vehicles App is a single-page application built with Angular 19, utilizing A
 vehicles-app
 ├── src
 │   ├── app
-│   │   ├── components
-│   │   │   └── vehicle-list
-│   │   ├── pages
-│   │   │   ├── home
-│   │   │   └── vehicles
-│   │   ├── store
-│   │   ├── services
-│   │   ├── models
-│   │   ├── app.component.ts
-│   │   ├── app.module.ts
-│   │   └── app.routes.ts
+│   │   ├── components           # Reusable UI components
+│   │   │   ├── vehicle-list     # Main vehicle list display
+│   │   │   ├── vehicle-types-card   # Vehicle types display card
+│   │   │   └── vehicle-models-card  # Vehicle models with virtual scroll
+│   │   ├── pages               # Page components
+│   │   │   ├── home            # Home page with search
+│   │   │   └── make            # Brand detail page (renamed from brand)
+│   │   ├── models              # TypeScript interfaces
+│   │   │   ├── make.model.ts
+│   │   │   ├── vehicle-type.model.ts
+│   │   │   └── vehicle-model.model.ts
+│   │   ├── services            # API and business logic
+│   │   │   └── vehicle.service.ts
+│   │   ├── store               # NgRx state management
+│   │   │   ├── actions         # NgRx actions
+│   │   │   ├── effects         # Side effects handling
+│   │   │   ├── reducers        # State reducers
+│   │   │   ├── selectors       # State selectors
+│   │   │   └── state           # State interfaces
+│   │   └── app.routes.ts        # Application routing
 │   ├── tests
-│   │   └── pages
-│   │       └── home
+│   │   ├── pages
+|   |   |   ├── home
+|   |   |   └── make
+│   │   └── components
+|   |       ├── vehicle-models-card
+|   |       └── vehicle-types-card
 │   ├── assets
 │   ├── styles.scss
 │   ├── main.ts
