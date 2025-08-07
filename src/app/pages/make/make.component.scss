@@ -1,0 +1,255 @@
+.make-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  height: calc(100vh - 90px);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 16px;
+}
+
+.back-button {
+  flex-shrink: 0;
+  color: #666;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+}
+
+.title-section {
+  flex: 1;
+
+  mat-card-title {
+    margin: 0;
+  }
+
+  mat-card-subtitle {
+    margin: 0;
+    margin-top: 4px;
+  }
+}
+
+mat-card {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+mat-card-header {
+  flex-shrink: 0;
+  padding: 16px;
+}
+
+mat-card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px !important;
+  min-height: 0;
+  overflow: hidden;
+}
+
+// BOTH cards share height equally - 50/50 split
+app-vehicle-types-card,
+app-vehicle-models-card {
+  flex: 1; // Equal sharing of available space
+  min-height: 150px;
+  display: flex;
+
+  ::ng-deep .vehicle-list-card {
+    height: 100%; // Take full allocated space
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24) !important;
+    border: 1px solid #e0e0e0;
+    margin: 0;
+    overflow: hidden;
+
+    mat-card-header {
+      flex-shrink: 0;
+      padding: 12px 16px 8px 16px;
+      background-color: #f8f9fa;
+      border-bottom: 1px solid #e9ecef;
+    }
+
+    // Card header with counter
+    .card-header-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .nested-card-title {
+      font-size: 16px !important;
+      font-weight: 500;
+      color: #495057;
+      margin: 0;
+      flex: 1;
+    }
+
+    .item-counter {
+      font-size: 14px;
+      color: #6c757d;
+      font-weight: 400;
+      margin-left: 8px;
+      opacity: 0.8;
+    }
+
+    mat-card-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 0 !important;
+      min-height: 0;
+      overflow: hidden;
+    }
+  }
+}
+
+// Specific styles for vehicle types (regular list)
+app-vehicle-types-card ::ng-deep .vehicle-list-card mat-card-content {
+  mat-list {
+    flex: 1;
+    padding: 0;
+    margin: 0;
+    overflow-y: auto;
+  }
+
+  .loading-container,
+  .no-results {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+}
+
+// Specific styles for vehicle models (virtual scroll)
+app-vehicle-models-card ::ng-deep .vehicle-list-card mat-card-content {
+  .viewport {
+    flex: 1;
+    width: 100%;
+    min-height: 100px;
+  }
+
+  .loading-container,
+  .no-results {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  flex: 1;
+
+  mat-spinner {
+    margin-bottom: 16px;
+  }
+
+  p {
+    color: rgba(0, 0, 0, 0.6);
+    margin: 0;
+  }
+}
+
+.vehicle-item {
+  border-bottom: 1px solid #f0f0f0;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  width: 100%;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background-color: #f5f5f5;
+    cursor: pointer;
+  }
+}
+
+.no-results {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  color: rgba(0, 0, 0, 0.6);
+  padding: 20px;
+
+  mat-icon {
+    font-size: 40px;
+    width: 40px;
+    height: 40px;
+    margin-bottom: 12px;
+  }
+
+  p {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+  }
+}
+
+// Override Angular Material styles
+::ng-deep .vehicle-list-card {
+  .mat-mdc-list {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  .mat-mdc-list-item {
+    height: 56px !important;
+    min-height: 56px !important;
+  }
+
+  .mat-mdc-list-item-content {
+    padding: 0 16px !important;
+    height: 56px !important;
+    align-items: center !important;
+  }
+
+  .mat-mdc-card-header {
+    padding: 12px 16px 8px 16px !important;
+  }
+
+  // Virtual scroll viewport
+  cdk-virtual-scroll-viewport {
+    height: 100% !important;
+
+    .cdk-virtual-scroll-content-wrapper {
+      min-height: 100% !important;
+    }
+  }
+}
+
+// Media query for responsive behavior
+@media (max-height: 600px) {
+  app-vehicle-types-card,
+  app-vehicle-models-card {
+    min-height: 120px;
+  }
+}
