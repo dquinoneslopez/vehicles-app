@@ -19,8 +19,11 @@ vehicles-app
 │   │   │   └── make            # Brand detail page (renamed from brand)
 │   │   ├── models              # TypeScript interfaces
 │   │   │   ├── make.model.ts
+│   │   │   ├── make.response.model.ts
 │   │   │   ├── vehicle-type.model.ts
+│   │   │   ├── vehicle-type.response.model.ts
 │   │   │   └── vehicle-model.model.ts
+│   │   │   ├── vehicle-model.response.model.ts
 │   │   ├── services            # API and business logic
 │   │   │   └── vehicle.service.ts
 │   │   ├── store               # NgRx state management
