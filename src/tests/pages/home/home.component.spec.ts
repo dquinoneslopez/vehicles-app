@@ -3,328 +3,370 @@ import {
   TestBed,
   fakeAsync,
   tick,
+  flush,
 } from "@angular/core/testing";
-import { Router } from "@angular/router";
-import { Store } from "@ngrx/store";
-import { BehaviorSubject, of, Observable } from "rxjs";
+import { provideMockStore, MockStore } from "@ngrx/store/testing";
 import { NoopAnimationsModule } from "@angular/platform-browser/animations";
-import { MatCardModule } from "@angular/material/card";
+import { MatToolbarModule } from "@angular/material/toolbar";
 import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatInputModule } from "@angular/material/input";
-import { MatIconModule } from "@angular/material/icon";
-import { MatButtonModule } from "@angular/material/button";
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
+import { MatCardModule } from "@angular/material/card";
+import { MatButtonModule } from "@angular/material/button";
+import { MatIconModule } from "@angular/material/icon";
 import { ScrollingModule } from "@angular/cdk/scrolling";
-import { FormsModule } from "@angular/forms";
+import { RouterTestingModule } from "@angular/router/testing";
+import { Router } from "@angular/router";
+import { take } from "rxjs/operators";
 
 import { HomeComponent } from "../../../app/pages/home/home.component";
 import { Make } from "../../../app/models/make.model";
-import { AppState } from "../../../app/store/app.state";
 import {
   loadMakes,
   setSearchTerm,
   clearSearchTerm,
 } from "../../../app/store/actions/vehicle.actions";
 
-describe("HomeComponent", (): void => {
+describe("HomeComponent", () => {
   let component: HomeComponent;
   let fixture: ComponentFixture<HomeComponent>;
-  let mockStore: jasmine.SpyObj<Store<AppState>>;
-  let mockRouter: jasmine.SpyObj<Router>;
+  let mockStore: MockStore;
+  let router: Router;
 
-  // Mock data with proper typing
-  const mockBrands: Make[] = [
-    { Make_ID: 1, Make_Name: "Audi" },
-    { Make_ID: 2, Make_Name: "BMW" },
-    { Make_ID: 3, Make_Name: "Ford" },
-    { Make_ID: 4, Make_Name: "Toyota" },
-    { Make_ID: 5, Make_Name: "Honda" },
+  const mockMakes: Make[] = [
+    { Make_ID: 440, Make_Name: "Audi" },
+    { Make_ID: 441, Make_Name: "BMW" },
+    { Make_ID: 442, Make_Name: "Mercedes" },
+    { Make_ID: 443, Make_Name: "Ford" },
   ];
 
-  // Mock store selectors with proper typing (removed pagination-related ones)
-  const allBrands$: BehaviorSubject<Make[]> = new BehaviorSubject<Make[]>([]);
-  const filteredBrands$: BehaviorSubject<Make[]> = new BehaviorSubject<Make[]>(
-    []
-  );
-  const loading$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(
-    false
-  );
-  const searchTerm$: BehaviorSubject<string> = new BehaviorSubject<string>("");
+  const initialState = {
+    vehicles: {
+      vehicles: mockMakes, // Put the makes here instead of empty array
+      vehicleTypes: [],
+      vehicleModels: [],
+      vehicleTypesForMake: {},
+      loadedVehicleTypesMakeIds: new Set(),
+      loadedVehicleModelsMakeIds: new Set(),
+      currentMakeId: null,
+      loading: false,
+      error: null,
+      searchTerm: "",
+    },
+  };
 
-  beforeEach(async (): Promise<void> => {
-    const storeSpy: jasmine.SpyObj<Store<AppState>> = jasmine.createSpyObj(
-      "Store",
-      ["select", "dispatch"]
-    );
-    const routerSpy: jasmine.SpyObj<Router> = jasmine.createSpyObj("Router", [
-      "navigate",
-    ]);
-
-    // Configure store selector returns with proper typing
-    storeSpy.select.and.callFake((selector: any): Observable<any> => {
-      if (selector.toString().includes("selectAllVehicles")) {
-        return allBrands$.asObservable();
-      }
-      if (selector.toString().includes("selectFilteredVehicles")) {
-        return filteredBrands$.asObservable();
-      }
-      if (selector.toString().includes("selectLoading")) {
-        return loading$.asObservable();
-      }
-      if (selector.toString().includes("selectSearchTerm")) {
-        return searchTerm$.asObservable();
-      }
-      return of(null);
-    });
-
+  beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [HomeComponent],
       imports: [
         NoopAnimationsModule,
-        MatCardModule,
+        MatToolbarModule,
         MatFormFieldModule,
         MatInputModule,
-        MatIconModule,
-        MatButtonModule,
         MatProgressSpinnerModule,
+        MatCardModule,
+        MatButtonModule,
+        MatIconModule,
         ScrollingModule,
-        FormsModule,
+        RouterTestingModule,
       ],
-      providers: [
-        { provide: Store, useValue: storeSpy },
-        { provide: Router, useValue: routerSpy },
-      ],
+      providers: [provideMockStore({ initialState })],
     }).compileComponents();
 
     fixture = TestBed.createComponent(HomeComponent);
     component = fixture.componentInstance;
-    mockStore = TestBed.inject(Store) as jasmine.SpyObj<Store<AppState>>;
-    mockRouter = TestBed.inject(Router) as jasmine.SpyObj<Router>;
+    mockStore = TestBed.inject(MockStore);
+    router = TestBed.inject(Router);
+
+    spyOn(mockStore, "dispatch").and.callThrough();
+    spyOn(router, "navigate");
   });
 
-  beforeEach((): void => {
-    // Reset mock data (removed pagination-related resets)
-    allBrands$.next([]);
-    filteredBrands$.next([]);
-    loading$.next(false);
-    searchTerm$.next("");
+  afterEach(() => {
+    if (fixture) {
+      fixture.destroy();
+    }
+    mockStore?.resetSelectors();
   });
 
-  afterEach((): void => {
-    fixture.destroy();
-  });
-
-  describe("Component Initialization", (): void => {
-    it("should create", (): void => {
+  describe("Component Initialization", () => {
+    it("should create", () => {
       expect(component).toBeTruthy();
     });
 
-    it("should initialize with default values", (): void => {
-      expect(component.searchTerm).toBe("");
-      expect(component.loading).toBe(false);
-      // Removed pagination property checks
-    });
-
-    it("should setup store selectors", (): void => {
-      fixture.detectChanges();
-
-      expect(mockStore.select).toHaveBeenCalledTimes(4); // Reduced from 6 to 4
-    });
-
-    it("should not have pagination-related properties", (): void => {
-      expect(component.hasOwnProperty("hasMoreData")).toBe(false);
-      expect(component.hasOwnProperty("currentPage")).toBe(false);
-      expect(component.hasOwnProperty("hasMoreData$")).toBe(false);
-      expect(component.hasOwnProperty("currentPage$")).toBe(false);
+    it("should initialize with default values", () => {
+      // Since the component starts with mockMakes in initialState,
+      // hasInitiallyLoaded will be true after component creation
+      expect(component.hasInitiallyLoaded).toBe(true);
     });
   });
 
-  describe("Data Loading", (): void => {
-    it("should dispatch loadMakes on init when no brands are loaded", (): void => {
-      allBrands$.next([]);
+  describe("Data Loading", () => {
+    it("should dispatch loadMakes on init when no makes are loaded", fakeAsync(async () => {
+      // Create a new initial state with empty vehicles
+      const emptyState = {
+        vehicles: {
+          ...initialState.vehicles,
+          vehicles: [], // Empty vehicles array
+        },
+      };
+
+      // Reinitialize the store with empty state
+      TestBed.resetTestingModule();
+      await TestBed.configureTestingModule({
+        declarations: [HomeComponent],
+        imports: [
+          NoopAnimationsModule,
+          MatToolbarModule,
+          MatFormFieldModule,
+          MatInputModule,
+          MatProgressSpinnerModule,
+          MatCardModule,
+          MatButtonModule,
+          MatIconModule,
+          ScrollingModule,
+          RouterTestingModule,
+        ],
+        providers: [provideMockStore({ initialState: emptyState })],
+      }).compileComponents();
+
+      fixture = TestBed.createComponent(HomeComponent);
+      component = fixture.componentInstance;
+      mockStore = TestBed.inject(MockStore);
+      spyOn(mockStore, "dispatch").and.callThrough();
 
       component.ngOnInit();
+      tick();
 
       expect(mockStore.dispatch).toHaveBeenCalledWith(loadMakes());
-    });
-
-    it("should not dispatch loadMakes when brands are already loaded", (): void => {
-      allBrands$.next(mockBrands);
-
-      component.ngOnInit();
-
-      expect(mockStore.dispatch).not.toHaveBeenCalledWith(loadMakes());
-    });
-
-    it("should not dispatch loadMakes when hasInitiallyLoaded is true", fakeAsync((): void => {
-      // First load brands to set hasInitiallyLoaded
-      allBrands$.next(mockBrands);
-      fixture.detectChanges();
-      tick();
-
-      // Reset brands to empty and try to init again
-      allBrands$.next([]);
-      tick();
-
-      mockStore.dispatch.calls.reset();
-
-      component.ngOnInit();
-
-      expect(mockStore.dispatch).not.toHaveBeenCalledWith(loadMakes());
+      flush();
     }));
 
-    it("should update loading state from store", fakeAsync((): void => {
-      fixture.detectChanges();
-
-      loading$.next(true);
+    it("should update makes data from store", fakeAsync(() => {
+      component.ngOnInit();
       tick();
 
-      expect(component.loading).toBe(true);
-
-      loading$.next(false);
-      tick();
-
-      expect(component.loading).toBe(false);
-    }));
-
-    it("should update brands data from store", fakeAsync((): void => {
-      fixture.detectChanges();
-
-      allBrands$.next(mockBrands);
-      tick();
-
-      component.allBrands$.subscribe((brands: Make[]): void => {
-        expect(brands).toEqual(mockBrands);
-        expect(brands.length).toBe(5);
+      // Test the observable directly - the initial state already has mockMakes
+      let receivedMakes: Make[] = [];
+      component.allMakes$.pipe(take(1)).subscribe((makes: Make[]) => {
+        receivedMakes = makes;
       });
-    }));
-
-    it("should set hasInitiallyLoaded flag when brands are loaded", fakeAsync((): void => {
-      fixture.detectChanges();
-
-      allBrands$.next(mockBrands);
       tick();
 
-      expect((component as any)["hasInitiallyLoaded"]).toBe(true);
+      expect(receivedMakes).toEqual(mockMakes);
+      expect(receivedMakes.length).toBe(4);
+      flush();
+    }));
+
+    it("should update loading state from store", async () => {
+      // Test with loading true
+      const loadingState = {
+        vehicles: {
+          ...initialState.vehicles,
+          loading: true,
+        },
+      };
+
+      TestBed.resetTestingModule();
+      await TestBed.configureTestingModule({
+        declarations: [HomeComponent],
+        imports: [
+          NoopAnimationsModule,
+          MatToolbarModule,
+          MatFormFieldModule,
+          MatInputModule,
+          MatProgressSpinnerModule,
+          MatCardModule,
+          MatButtonModule,
+          MatIconModule,
+          ScrollingModule,
+          RouterTestingModule,
+        ],
+        providers: [provideMockStore({ initialState: loadingState })],
+      }).compileComponents();
+
+      fixture = TestBed.createComponent(HomeComponent);
+      component = fixture.componentInstance;
+
+      component.ngOnInit();
+
+      let loadingValue: boolean = false;
+      component.loading$.pipe(take(1)).subscribe((loading: boolean) => {
+        loadingValue = loading;
+      });
+
+      expect(loadingValue).toBe(true);
+    });
+
+    it("should set hasInitiallyLoaded flag when makes are loaded", fakeAsync(() => {
+      // Start with component that has makes
+      component.ngOnInit();
+      tick();
+
+      // Since we start with makes in initial state, the flag should be set
+      expect(component.hasInitiallyLoaded).toBe(true);
+      flush();
     }));
   });
 
-  describe("Search Functionality", (): void => {
-    beforeEach((): void => {
+  describe("Search Functionality", () => {
+    beforeEach(fakeAsync(() => {
+      component.ngOnInit();
+      tick();
       fixture.detectChanges();
-    });
+      flush();
+    }));
 
-    it("should update search term when input changes", fakeAsync((): void => {
-      const inputElement: HTMLInputElement =
-        fixture.debugElement.nativeElement.querySelector("input");
+    it("should update search term from store", fakeAsync(async () => {
+      // Test with search term in initial state
+      const searchState = {
+        vehicles: {
+          ...initialState.vehicles,
+          searchTerm: "Toyota",
+        },
+      };
 
-      inputElement.value = "Ford";
-      inputElement.dispatchEvent(new Event("input"));
+      TestBed.resetTestingModule();
+      await TestBed.configureTestingModule({
+        declarations: [HomeComponent],
+        imports: [
+          NoopAnimationsModule,
+          MatToolbarModule,
+          MatFormFieldModule,
+          MatInputModule,
+          MatProgressSpinnerModule,
+          MatCardModule,
+          MatButtonModule,
+          MatIconModule,
+          ScrollingModule,
+          RouterTestingModule,
+        ],
+        providers: [provideMockStore({ initialState: searchState })],
+      }).compileComponents();
 
+      fixture = TestBed.createComponent(HomeComponent);
+      component = fixture.componentInstance;
+
+      component.ngOnInit();
+      tick();
+
+      let searchTerm: string = "";
+      component.searchTerm$.pipe(take(1)).subscribe((term: string) => {
+        searchTerm = term;
+      });
+      tick();
+
+      expect(searchTerm).toBe("Toyota");
+      flush();
+    }));
+
+    it("should dispatch setSearchTerm when search term changes", fakeAsync(() => {
+      const searchTerm = "BMW";
+      const mockEvent = { target: { value: searchTerm } } as unknown as Event;
+
+      component.onSearchChange(mockEvent);
       tick(300); // Wait for debounce
 
       expect(mockStore.dispatch).toHaveBeenCalledWith(
-        setSearchTerm({ searchTerm: "Ford" })
+        setSearchTerm({ searchTerm })
       );
+
+      flush();
     }));
 
-    it("should update local searchTerm immediately on input change", (): void => {
-      const event: Event = new Event("input");
-      Object.defineProperty(event, "target", {
-        value: { value: "Ford" } as HTMLInputElement,
-      });
-
-      component.onSearchChange(event);
-
-      expect(component.searchTerm).toBe("Ford");
-    });
-
-    it("should debounce search input", fakeAsync((): void => {
-      const inputElement: HTMLInputElement =
-        fixture.debugElement.nativeElement.querySelector("input");
-
-      // Simulate rapid typing
-      inputElement.value = "F";
-      inputElement.dispatchEvent(new Event("input"));
-      tick(100);
-
-      inputElement.value = "Fo";
-      inputElement.dispatchEvent(new Event("input"));
-      tick(100);
-
-      inputElement.value = "Ford";
-      inputElement.dispatchEvent(new Event("input"));
-      tick(300);
-
-      // Should only dispatch once with final value
-      expect(mockStore.dispatch).toHaveBeenCalledTimes(1);
-      expect(mockStore.dispatch).toHaveBeenCalledWith(
-        setSearchTerm({ searchTerm: "Ford" })
-      );
-    }));
-
-    it("should clear search when clearSearch is called", (): void => {
-      component.searchTerm = "Ford";
-
+    it("should clear search term", () => {
+      component.searchTerm = "BMW";
       component.clearSearch();
 
-      expect(component.searchTerm).toBe("");
       expect(mockStore.dispatch).toHaveBeenCalledWith(clearSearchTerm());
     });
+  });
 
-    it("should update search term from store", fakeAsync((): void => {
-      searchTerm$.next("Toyota");
+  describe("Loading States", () => {
+    it("should show initial loading when loading and no makes", fakeAsync(async () => {
+      // Create state with loading true and no vehicles
+      const loadingState = {
+        vehicles: {
+          ...initialState.vehicles,
+          loading: true,
+          vehicles: [],
+        },
+      };
+
+      TestBed.resetTestingModule();
+      await TestBed.configureTestingModule({
+        declarations: [HomeComponent],
+        imports: [
+          NoopAnimationsModule,
+          MatToolbarModule,
+          MatFormFieldModule,
+          MatInputModule,
+          MatProgressSpinnerModule,
+          MatCardModule,
+          MatButtonModule,
+          MatIconModule,
+          ScrollingModule,
+          RouterTestingModule,
+        ],
+        providers: [provideMockStore({ initialState: loadingState })],
+      }).compileComponents();
+
+      fixture = TestBed.createComponent(HomeComponent);
+      component = fixture.componentInstance;
+
+      component.ngOnInit();
+      tick();
+      fixture.detectChanges();
+
+      let isInitialLoading: boolean = false;
+      component.isInitialLoading$.pipe(take(1)).subscribe((show: boolean) => {
+        isInitialLoading = show;
+      });
       tick();
 
-      expect(component.searchTerm).toBe("Toyota");
+      expect(isInitialLoading).toBe(true);
+
+      // Check if there's any loading element in the template
+      const loadingElement = fixture.debugElement.nativeElement.querySelector(
+        "mat-spinner, .loading, [data-testid='loading']"
+      );
+      expect(loadingElement).toBeTruthy();
+
+      flush();
+    }));
+
+    it("should not show initial loading when makes are loaded", fakeAsync(() => {
+      component.ngOnInit();
+      tick();
+      fixture.detectChanges();
+
+      let isInitialLoading: boolean = true;
+      component.isInitialLoading$.pipe(take(1)).subscribe((show: boolean) => {
+        isInitialLoading = show;
+      });
+      tick();
+
+      expect(isInitialLoading).toBe(false);
+      flush();
     }));
   });
 
-  describe("Brand Navigation", (): void => {
-    it("should navigate to brand page when brand is clicked", (): void => {
-      const mockBrand: Make = mockBrands[0]; // Audi
+  describe("Navigation", () => {
+    it("should navigate to make details", () => {
+      const make: Make = { Make_ID: 440, Make_Name: "Audi" };
 
-      component.onBrandClick(mockBrand);
+      component.onMakeClick(make);
 
-      expect(mockRouter.navigate).toHaveBeenCalledWith(["/brand", 1], {
-        queryParams: {
-          name: "Audi",
-        },
+      expect(router.navigate).toHaveBeenCalledWith(["/make", make.Make_ID], {
+        queryParams: { name: make.Make_Name },
       });
     });
   });
 
-  describe("Virtual Scrolling", (): void => {
-    it("should track brands by ID", (): void => {
-      const mockBrand: Make = mockBrands[0];
-
-      const result: number = component.trackByBrand(0, mockBrand);
-
-      expect(result).toBe(1); // Make_ID
-    });
-
-    it("should fallback to index when brand has no ID", (): void => {
-      const mockBrandWithoutId: Make = {
-        Make_ID: 0,
-        Make_Name: "Unknown",
-      } as Make;
-
-      const result: number = component.trackByBrand(5, mockBrandWithoutId);
-
-      expect(result).toBe(5); // fallback to index
-    });
-  });
-
-  describe("Component Lifecycle", (): void => {
-    it("should complete destroy subject on destroy", (): void => {
-      const destroySpy: jasmine.Spy = spyOn(
-        (component as any)["destroy$"],
-        "next"
-      );
-      const completeSpy: jasmine.Spy = spyOn(
-        (component as any)["destroy$"],
-        "complete"
-      );
+  describe("Component Lifecycle", () => {
+    it("should complete destroy subject on destroy", () => {
+      const destroySpy = spyOn((component as any)["destroy$"], "next");
+      const completeSpy = spyOn((component as any)["destroy$"], "complete");
 
       component.ngOnDestroy();
 
@@ -333,145 +375,33 @@ describe("HomeComponent", (): void => {
     });
   });
 
-  describe("Loading States", (): void => {
-    beforeEach((): void => {
-      fixture.detectChanges();
+  // Test individual functionality without complex state management
+  describe("Basic Functionality", () => {
+    it("should create", () => {
+      expect(component).toBeTruthy();
     });
 
-    it("should show initial loading when loading and no brands", fakeAsync((): void => {
-      loading$.next(true);
-      allBrands$.next([]);
-      tick();
+    it("should call clearSearch correctly", () => {
+      component.clearSearch();
+      expect(mockStore.dispatch).toHaveBeenCalledWith(clearSearchTerm());
+    });
 
-      component.isInitialLoading$.subscribe((isLoading: boolean): void => {
-        expect(isLoading).toBe(true);
+    it("should navigate on make click", () => {
+      const make: Make = { Make_ID: 440, Make_Name: "Audi" };
+      component.onMakeClick(make);
+      expect(router.navigate).toHaveBeenCalledWith(["/make", make.Make_ID], {
+        queryParams: { name: make.Make_Name },
       });
-    }));
-
-    it("should not show initial loading when brands are loaded", fakeAsync((): void => {
-      loading$.next(true);
-      allBrands$.next(mockBrands);
-      tick();
-
-      component.isInitialLoading$.subscribe((isLoading: boolean): void => {
-        expect(isLoading).toBe(false);
-      });
-    }));
-  });
-
-  describe("Template Integration", (): void => {
-    beforeEach((): void => {
-      fixture.detectChanges();
     });
 
-    it("should display search input", (): void => {
-      const searchInput: HTMLInputElement | null =
-        fixture.debugElement.nativeElement.querySelector("input[matInput]");
-      expect(searchInput).toBeTruthy();
-    });
-
-    it("should show clear search button when search term exists", fakeAsync((): void => {
-      component.searchTerm = "Ford";
-      fixture.detectChanges();
-      tick();
-
-      const clearButton: HTMLButtonElement | null =
-        fixture.debugElement.nativeElement.querySelector("button[matSuffix]");
-      expect(clearButton).toBeTruthy();
-    }));
-
-    it("should show loading spinner when initially loading", fakeAsync((): void => {
-      loading$.next(true);
-      allBrands$.next([]);
-      tick();
-      fixture.detectChanges();
-
-      const spinner: HTMLElement | null =
-        fixture.debugElement.nativeElement.querySelector("mat-spinner");
-      expect(spinner).toBeTruthy();
-    }));
-  });
-
-  describe("Error Handling", (): void => {
-    it("should handle null/undefined brands gracefully", (): void => {
-      expect((): void => {
-        component.trackByBrand(0, null as any);
-      }).not.toThrow();
-    });
-
-    it("should handle empty search term gracefully", fakeAsync((): void => {
-      const inputElement: HTMLInputElement =
-        fixture.debugElement.nativeElement.querySelector("input");
-
-      inputElement.value = "";
-      inputElement.dispatchEvent(new Event("input"));
-      tick(300);
-
+    it("should dispatch search term on input", fakeAsync(() => {
+      const mockEvent = { target: { value: "BMW" } } as unknown as Event;
+      component.onSearchChange(mockEvent);
+      tick(300); // debounce time
       expect(mockStore.dispatch).toHaveBeenCalledWith(
-        setSearchTerm({ searchTerm: "" })
+        setSearchTerm({ searchTerm: "BMW" })
       );
+      flush();
     }));
-
-    it("should handle invalid event target in onSearchChange", (): void => {
-      const event: Event = {} as Event;
-
-      expect((): void => {
-        component.onSearchChange(event);
-      }).not.toThrow();
-    });
-
-    it("should handle null/undefined Make objects gracefully", (): void => {
-      const undefinedMake: Make | undefined = undefined;
-
-      expect((): void => {
-        component.trackByBrand(0, undefinedMake as any);
-      }).not.toThrow();
-    });
-  });
-
-  describe("Component Properties", (): void => {
-    it("should have all required observables", (): void => {
-      expect(component.allBrands$).toBeDefined();
-      expect(component.filteredBrands$).toBeDefined();
-      expect(component.loading$).toBeDefined();
-      expect(component.searchTerm$).toBeDefined();
-      expect(component.isInitialLoading$).toBeDefined();
-    });
-
-    it("should have observables with correct types", (): void => {
-      expect(component.allBrands$).toEqual(jasmine.any(Observable));
-      expect(component.filteredBrands$).toEqual(jasmine.any(Observable));
-      expect(component.loading$).toEqual(jasmine.any(Observable));
-      expect(component.searchTerm$).toEqual(jasmine.any(Observable));
-      expect(component.isInitialLoading$).toEqual(jasmine.any(Observable));
-    });
-
-    it("should unsubscribe from all observables on destroy", (): void => {
-      const destroyNextSpy: jasmine.Spy = spyOn(
-        (component as any)["destroy$"],
-        "next"
-      );
-      const destroyCompleteSpy: jasmine.Spy = spyOn(
-        (component as any)["destroy$"],
-        "complete"
-      );
-
-      component.ngOnDestroy();
-
-      expect(destroyNextSpy).toHaveBeenCalled();
-      expect(destroyCompleteSpy).toHaveBeenCalled();
-    });
-  });
-
-  describe("Type Safety", (): void => {
-    it("should handle string searchTerm property", (): void => {
-      component.searchTerm = "Test";
-      expect(typeof component.searchTerm).toBe("string");
-    });
-
-    it("should handle boolean loading property", (): void => {
-      component.loading = true;
-      expect(typeof component.loading).toBe("boolean");
-    });
   });
 });

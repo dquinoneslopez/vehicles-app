@@ -146,7 +146,7 @@ describe("VehicleTypesCardComponent", (): void => {
 
       expect(noResults).toBeTruthy();
       expect(infoIcon.textContent.trim()).toBe("info");
-      expect(message).toContain("No vehicle types found for this brand.");
+      expect(message).toContain("No vehicle types found for this make.");
     });
 
     it("should not show no results when vehicle types exist", (): void => {

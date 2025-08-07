@@ -33,19 +33,29 @@ import {
 export class HomeComponent implements OnInit, OnDestroy {
   private searchSubject = new Subject<string>();
   private destroy$ = new Subject<void>();
-  private hasInitiallyLoaded = false;
+  public hasInitiallyLoaded = false;
 
   // Store selectors
   allMakes$ = this.store.select(selectAllVehicles);
-  filteredMakes$ = this.store.select(selectFilteredVehicles);
   loading$ = this.store.select(selectLoading);
   searchTerm$ = this.store.select(selectSearchTerm);
 
   // Computed observables for loading states
   isInitialLoading$ = combineLatest([this.loading$, this.allMakes$]).pipe(
-    map(([loading, makes]) => loading && makes.length === 0)
+    map(([loading, makes]) => loading && (!makes || makes.length === 0))
   );
 
+  filteredMakes$ = combineLatest([this.allMakes$, this.searchTerm$]).pipe(
+    map(([makes, searchTerm]) => {
+      if (!makes) return [];
+      if (!searchTerm) return makes;
+      return makes.filter((make) =>
+        make.Make_Name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    })
+  );
+
+  // Current search term for template binding
   searchTerm = "";
   loading = false;
 
@@ -54,8 +64,8 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.allMakes$
       .pipe(
         takeUntil(this.destroy$),
-        tap((makes) => {
-          if (makes.length > 0) {
+        tap((makes: Make[] | null) => {
+          if (makes && makes.length > 0 && !this.hasInitiallyLoaded) {
             this.hasInitiallyLoaded = true;
           }
         })
@@ -115,8 +125,8 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   onSearchChange(event: Event): void {
-    const target = event.target as HTMLInputElement;
-    const newSearchTerm = target.value;
+    const target: HTMLInputElement = event.target as HTMLInputElement;
+    const newSearchTerm: string = target.value;
     this.searchTerm = newSearchTerm;
     this.searchSubject.next(newSearchTerm);
   }

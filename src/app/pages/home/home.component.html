@@ -39,7 +39,10 @@
       </div>
 
       <!-- Results display -->
-      <div *ngIf="(allMakes$ | async)?.length > 0" class="results-container">
+      <div
+        *ngIf="((allMakes$ | async)?.length || 0) > 0"
+        class="results-container"
+      >
         <div class="results-info">
           <p>
             Showing {{ (filteredMakes$ | async)?.length || 0 }}
@@ -76,7 +79,7 @@
       <!-- No results state -->
       <div
         *ngIf="
-          (allMakes$ | async)?.length > 0 &&
+          ((allMakes$ | async)?.length || 0) > 0 &&
           (filteredMakes$ | async)?.length === 0 &&
           searchTerm
         "
@@ -91,7 +94,5 @@
         </button>
       </div>
     </mat-card-content>
-
-    <!-- Footer removed since no more loading needed -->
   </mat-card>
 </div>

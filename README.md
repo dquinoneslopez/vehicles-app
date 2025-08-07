@@ -16,7 +16,7 @@ vehicles-app
 │   │   │   └── vehicle-models-card  # Vehicle models with virtual scroll
 │   │   ├── pages               # Page components
 │   │   │   ├── home            # Home page with search
-│   │   │   └── make            # Brand detail page (renamed from brand)
+│   │   │   └── make            # Make detail page
 │   │   ├── models              # TypeScript interfaces
 │   │   │   ├── make.model.ts
 │   │   │   ├── make.response.model.ts
